@@ -21,8 +21,8 @@ Default = struct('gamma', 67.262e6, 'readBandwidth', 4096, 'rfBandwidth', 5000,.
 tmpNames = fieldnames(base);
 for i = 1:numel(tmpNames)
     if ~isfield(Default,tmpNames{i})
-        warning('WARNING! the field "%s" was passesed in but does not match any of the default names.\n',tmpNames{i});
-        warning('This variable wont be used!\n')
+        fprintf('WARNING! the field "%s" was passesed in but does not match any of the default names.',);
+        fprintf(This variable wont be used!\n',tmpNames{i})
     end
 end
 tmpNames = fieldnames(Default);
