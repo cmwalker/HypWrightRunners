@@ -11,7 +11,7 @@ Default = struct('gamma', 67.262e6, 'readBandwidth', 4096, 'rfBandwidth', 5000,.
     'nPoints', 2048, 'pyrCenter', 913, 'lacCenter', 1137, 'FWHMRange', 100,...
     't0',0,'endTime', 100, 'T1a', 56, 'T2a', 0.02, 'T1b', 30,...
     'T2b', 0.02, 'kve', 0.02, 'vb', 0.09, 've', .91, 'ppma', -7e-6,...
-    'ppmb', 7e-6,'gammaPdfA',2.8,'gammaPdfB',4.5, 'A', BanksonModel(),...
+    'ppmb', 7e-6,'gammaPdfA',2.8,'gammaPdfB',4.5,'scaleFactor',1, 'A', BanksonModel(),...
     'Kab', 0.1, 'flipAngle', 20, 'TR', 2, 'NoiseFact', 1e20, 'nAverages', 1,...
     'verbose', false);
 tmpNames = fieldnames(Default);
@@ -36,9 +36,8 @@ ve = base.ve;
 ppma = base.ppma;
 ppmb = base.ppmb;
 A = base.A;
-bfit = @(t)padarray(gampdf(t,base.gammaPdfA,base.gammaPdfB),1,'post');
-base.b = bfit;
-b = @(t)padarray(padarray(gampdf(t-t0,base.gammaPdfA,base.gammaPdfB),2),1,'post');
+b = @(t)base.scaleFactor*padarray(padarray(...
+    gampdf(t-t0,base.gammaPdfA,base.gammaPdfB),2),1,'post');
 Kab = base.Kab;
 flipAngle = base.flipAngle;
 TR = base.TR;
@@ -52,7 +51,8 @@ tmp = world.getB0;
 B0 = tmp(3);
 Spin = TwoSitePerfusionExchangeGroup([0;0;0;0;0;0],[0;0;0;0;0;0],...
     T1a,T2a,ppma,T1b,T2a,ppmb,gamma,ve,Kab,[],kve/ve,b);
-Spin2 = BanksonSpinGrp([0;0;0],[0;0;0],T1a,T2a,gamma,ppma,vb,[2.8,4.5],t0);
+Spin2 = BanksonSpinGrp([0;0;0],[0;0;0],T1a,T2a,gamma,ppma,vb,...
+    [base.gammaPdfA,base.gammaPdfB,base.scaleFactor],t0);
 V = Voxel([0;0;0],Spin);
 V.addSpin(Spin2);
 if (verbose)

@@ -1,4 +1,4 @@
-function [ fits, fitErr, SNR ] = PerfusedFit( base,fitParams,raw,t )
+function [ fits, fitErr, SNR, exitflag ] = PerfusedFit( base,fitParams,raw,t )
 import HypWright.*
 import HypWright.Models.*
 import HypWrightRunners.*
@@ -13,9 +13,10 @@ Default = struct('gamma', 67.262e6, 'readBandwidth', 4096, 'rfBandwidth', 5000,.
     'nPoints', 2048, 'FWHMRange', 100,...
     't0',0,'endTime', 100, 'T1a', 56, 'T2a', 0.02, 'T1b', 30,...
     'T2b', 0.02, 'kve', 0.02, 'vb', 0.09, 've', .91, 'ppma', -7e-6,...
-    'ppmb', 7e-6,'gammaPdfA',2.8,'gammaPdfB',4.5, 'A', GammaBanksonModel(),...
+    'ppmb', 7e-6,'gammaPdfA',2.8,'gammaPdfB',4.5,'scaleFactor',1, 'A', GammaBanksonModel(),...
     'Kab', 0.1, 'flipAngle', 20, 'TR', 2, 'noiseLevel', 1e20, 'nAverages', 1,...
-    'lb',0,'ub',100,'verbose', false,'centers',[913,1137]);
+    'lb',0,'ub',100,'verbose', false,'centers',[913,1137],...
+    'fitOptions', optimset('lsqcurvefit'));
 tmpNames = fieldnames(Default);
 for i = 1:numel(tmpNames)
     if ~isfield(base,tmpNames{i})
@@ -68,7 +69,7 @@ for i = 1:numel(tmpNames)
         fitConstants = rmfield(fitConstants,tmpNames{i});
     end
 end
-[x,~,resnorm,~] = A.fitData(fitConstants,fitParams,t,signals,'lb',lb,'ub',ub);
+[x,~,resnorm,~,exitflag] = A.fitData(fitConstants,fitParams,t,signals,'lb',lb,'ub',ub);
 resParams = fitConstants;
 for i = 1:numel(tmpNames)
     resParams.(tmpNames{i}) = x(i);
