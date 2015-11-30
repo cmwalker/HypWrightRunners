@@ -15,8 +15,8 @@ Default = struct('gamma', 67.262e6, 'readBandwidth', 4096, 'rfBandwidth', 5000,.
     'ppmb', 7e-6,'gammaPdfA',2.8,'gammaPdfB',4.5,'scaleFactor',1,...
     'Kab', 0.1, 'flipAngle', 20, 'TR', 2,'verbose', false,...
     'FWHMRange', 10, 'A', GammaBanksonModel(),'noiseLevel', 1e20,...
-    'nAverages', 1, 'lb',0,'ub',100,'centers',[763,1287],'fitOptions',...
-    optimset('lsqcurvefit'));
+    'nAverages', 1, 'lb',0,'ub',100,'centers',[913,1137],'fitOptions',...
+    optimset('lsqcurvefit'),'B0',3);
 tmpNames = fieldnames(base);
 for i = 1:numel(tmpNames)
     if ~isfield(Default,tmpNames{i})
@@ -60,7 +60,7 @@ for m = 1:length(centers)
     phases(m) = angle(FTData(peakMax(m),centers(m))); % find the phase at the above point
     for n = 1:length(t)
         % FWHM integrate the Phased signal
-        signals(m,n) = abs(sum(real(exp(1i*(phases(m)))*FTData(n,centers(m)-FWHMRange:centers(m)+FWHMRange))));
+        signals(m,n) = sum(real(exp(-1i*(phases(m)))*FTData(n,centers(m)-FWHMRange:centers(m)+FWHMRange)));
     end
 end
 signals(:,1) = 0;
