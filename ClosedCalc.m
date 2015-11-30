@@ -10,7 +10,7 @@ end
 Default = struct('gamma', 67.262e6, 'readBandwidth', 4096, 'rfBandwidth', 5000,...
     'nPoints', 2048, 'endTime', 100, 'T1a', 56, 'T2a', 0.02, 'T1b', 30,...
     'T2b', 0.02, 'ppma', -7e-6,'ppmb', 7e-6, 'Kab', 0.1, 'flipAngle', 20,...
-    'TR', 2,'A', TwoSiteExchange(), 'verbose', false);
+    'TR', 2,'A', TwoSiteExchange(), 'verbose', false,'B0',3.0);
 tmpNames = fieldnames(Default);
 for i = 1:numel(tmpNames)
     if ~isfield(base,tmpNames{i})
@@ -31,13 +31,13 @@ ppmb = base.ppmb;
 Kab = base.Kab;
 flipAngle = base.flipAngle;
 TR = base.TR;
+B0 = base.B0;
 verbose = base.verbose;
 %TODO add input validation;
 %% Init World
 world = HypWright.World.getWorld;
 world.initWorld()
-tmp = world.getB0;
-B0 = tmp(3);
+world.setB0([0;0;B0])
 Spin = TwoSiteExchangeGroup([0;0;1;0;0;0],[0;0;0;0;0;0],...
                 T1a,T2a,ppma,T1b,T2a,ppmb,gamma,1,Kab,[]);
 V = Voxel([0;0;0],Spin);

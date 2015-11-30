@@ -16,7 +16,8 @@ Default = struct('gamma', 67.262e6, 'readBandwidth', 4096, 'rfBandwidth', 5000,.
     'ppmb', 7e-6,'gammaPdfA',2.8,'gammaPdfB',4.5,'scaleFactor',1,...
     'Kab', 0.1, 'flipAngle', 20, 'TR', 2,'verbose', false,...
     'FWHMRange', [], 'A', [],'noiseLevel', [],...
-    'nAverages', [], 'lb',[],'ub',[],'centers',[],'fitOptions',[]);
+    'nAverages', [], 'lb',[],'ub',[],'centers',[],'fitOptions',[],...
+    'B0',3.0);
 % Check that there are no unsed variables in base;
 tmpNames = fieldnames(base);
 for i = 1:numel(tmpNames)
@@ -53,12 +54,12 @@ flipAngle = base.flipAngle;
 TR = base.TR;
 verbose = base.verbose;
 Mz = [];
+B0 = base.B0;
 %TODO add input validation;
 %% Init World
 world = HypWright.World.getWorld;
 world.initWorld()
-tmp = world.getB0;
-B0 = tmp(3);
+world.setB0([0;0;B0])
 Spin = TwoSitePerfusionExchangeGroup([0;0;0;0;0;0],[0;0;0;0;0;0],...
     T1a,T2a,ppma,T1b,T2a,ppmb,gamma,ve,Kab,[],kve/ve,b);
 Spin2 = BanksonSpinGrp([0;0;0],[0;0;0],T1a,T2a,gamma,ppma,vb,...
@@ -114,14 +115,5 @@ if (verbose)
     plot(tMz,MzPyr,'go',tMz,MzLac,'bo')
     legend('Simulated Pyruvate Mz','Simulated Lactate Mz');
         % Display model and Mz
-    figure('Name',sprintf('Kab: %.4f Flip Angle %2f Repetition Time %.4f',...
-    Kab,flipAngle,TR),'NumberTitle','off','Position',[660 50 1040 400])
-    [Y,T] = A.evaluate(base,linspace(0,t(end),1000),[0,0]);
-    normFact = max([max(MzPyr) max(MzLac)])/max(Y(:));
-    plot(T,Y(1,:),'g',T,Y(2,:),'b',tMz,MzPyr./normFact,'go',tMz,...
-        MzLac./normFact,'bo')
-    legend('Modeled Pyruvate','Modeled Lactate',...
-        'Simulated Pyruvate Mz','Simulated Lactate Mz');
-    title('Fit Parameters')
 end
 end

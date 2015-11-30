@@ -9,10 +9,10 @@ end
 if isempty(fitParams)
     error('No initial guesses were passed in for any fit parameters');
 end
-Default = struct('FWHMRange', 100,'endTime', 100, 'T1a', 56, 'T1b', 30,...
+Default = struct('FWHMRange', 10,'endTime', 100, 'T1a', 56, 'T1b', 30,...
     'A', TwoSiteExchange(),'Kab', 0.1, 'flipAngle', 20, 'TR', 2,...
     'noiseLevel', 1e20, 'nAverages', 1,'lb',[],'ub',[],'verbose', false,...
-    'centers',[913,1137]);
+    'centers',[763,1287]);
 tmpNames = fieldnames(Default);
 for i = 1:numel(tmpNames)
     if ~isfield(base,tmpNames{i})
@@ -49,8 +49,7 @@ for m = 1:length(centers)
     phases(m) = angle(FTData(peakMax(m),centers(m))); % find the phase at the above point
     for n = 1:length(t)
         % FWHM integrate the Phased signal
-        signals(m,n) = HypWright.fwhm(centers(m)-FWHMRange:centers(m)+FWHMRange,...
-            abs(real(exp(1i*(phases(m)))*FTData(n,centers(m)-FWHMRange:centers(m)+FWHMRange))));
+        signals(m,n) = abs(sum(real(exp(1i*(phases(m)))*FTData(n,centers(m)-FWHMRange:centers(m)+FWHMRange))));
     end
 end
 % tmpMax = max(max(signals));
