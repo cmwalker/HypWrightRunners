@@ -1,6 +1,6 @@
 %% Finction to run a simulation with some set of parameters and return the fit
 % accuracy
-function [raw,t] =  ClosedCalc(base)
+function [raw,t,freqAxis] =  ClosedCalc(base)
 import HypWright.*
 import HypWright.Models.*
 %% Initilaize variable
@@ -57,13 +57,13 @@ world.setPulseSequence(PS)
 world.calculate(t(end)+10);
 FID = zeros(length(t),nPoints);
 for i = 1:length(t)
-    [FID(i,:), freqAx] = world.evaluate(ADC(i,:),-gamma*B0);
+    [FID(i,:), freqAxis] = world.evaluate(ADC(i,:),-gamma*B0);
 end
-raw = FID;
+raw = FID.';
 t = linspace(ADC(1,floor(end/2)),ADC(end,floor(end/2)),size(ADC,1));
 if (verbose)
     figure
-    surf(freqAx,t,abs(fftshift(fft(FID,[],2),2)));
+    surf(freqAxis,t,abs(fftshift(fft(FID,[],2),2)));
     drawnow
 end
 end

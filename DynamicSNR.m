@@ -1,4 +1,4 @@
-function [ SNR,meanSNR ] = DynamicSNR(raw,noiseLevel)
+function [ SNR,meanSNR ] = DynamicSNR(raw,noise,freqAxis)
 %DYNAMICSNR gives the SNR and mean SNR of a dynamic hyperpolarized study
 %   [ SNR,meanSNR ] = DynamicSNR(raw,t,noiseLevel) - takes some raw noisless
 %   FIDs, the time vector associated with the FIDs, and some noise factor and
@@ -10,35 +10,36 @@ function [ SNR,meanSNR ] = DynamicSNR(raw,noiseLevel)
 %   to the raw data.
 % import libraries
 import HypWright.*
+import HypWrightRunners.*
 % Find Peak Centers
-if size(raw,1) == 1
-    [~,centers] = findpeaks(abs(fftshift(fft(raw,[],2),2)));
-else
-    [~,centers] = findpeaks(abs(sum(fftshift(fft(raw,[],2),2))));
-end
 % generate noise
-noise = (rand(size(raw))+1i*rand(size(raw)))/noiseLevel;
-FTData = fftshift(fft(raw,[],2),2); % Fourier transfor data
-t = 1:size(raw,1);
-% Initialize variables 
-peakMax = zeros(size(centers));
-phases = zeros(size(centers));
-signals = zeros(size(centers,2),size(raw,1));
-% Phase correct and FWHM integrate each peak
-for i = 1:length(centers)
-    [~,peakMax(i)] =  max(abs(FTData(:,centers(i)))); % fint the maximal peak location
-    phases(i) = angle(FTData(peakMax(i),centers(i))); % find the phase at the above point
-    for j = 1:length(t)
-        % FWHM integrate the Phased signal
-        signals(i,j) = HypWright.fwhm(centers(i)-100:centers(i)+100,...
-            real(exp(1i*(phases(i)))*FTData(j,centers(i)-100:centers(i)+100)));
+FTData = fftshift(fft(raw,[],1),1); % Fourier transfor data
+if isvector(FTData)
+    [I, ~, peakI] = FWHMRange(freqAxis, abs(FTData));
+else
+    [I, ~, peakI] = FWHMRange(freqAxis, sum(abs(FTData),2));
+end
+peakMax = zeros(size(peakI));
+phases = zeros(size(peakI));
+signals = zeros(size(raw,2),size(peakI,2));
+PhaseData = zeros([size(FTData),length(peakI)]);
+for m = 1:length(peakI)
+    if(peakI(m) == 0)
+        continue
     end
+    [~,peakMax(m)] =  max(abs(FTData(peakI(m),:))); % fint the maximal peak location
+    phases(m) = angle(FTData(peakI(m),peakMax(m))); % find the phase at the above point
+    for n = 1:size(FTData,2)
+        % FWHM integrate the Phased signal
+        PhaseData(:,n,m) = real(exp(-1i*(phases(m)))*FTData(:,n));
+    end
+    [signals(:,m)] = SignalIntegration(freqAxis, squeeze(PhaseData(:,:,m)), I(m,:));
 end
 totalSignal = sum(sum(signals)); % Find total raw signal
-noiseFT = fftshift(fft(noise,[],2),2); % find FFT of raw noise
+noiseFT = fftshift(fft(noise,[],1),1); % find FFT of raw noise
 % estimate the avearg std of the noise
-noiseEstimate = mean(std(noiseFT(:,round(1:end/3)),[],2)); 
+noiseEstimate = mean(std(noiseFT,[],1)); 
 SNR = totalSignal/noiseEstimate; % calculate total SNR
-meanSNR = SNR/length(t); % calculate average SNR per timepoint
+meanSNR = SNR/size(raw,2); % calculate average SNR per timepoint
 end
 

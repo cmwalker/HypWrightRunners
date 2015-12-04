@@ -1,6 +1,6 @@
 %% Finction to run a simulation with some set of parameters and return the fit
 % accuracy
-function [raw,t] =  PerfusedCalc(base)
+function [raw,t,freqAx] =  PerfusedCalc(base)
 import HypWright.*
 import HypWright.Models.*
 %% Initilaize variable
@@ -73,12 +73,12 @@ world.addVoxel(V);
 %% Build Pulse Sequence
 PS = PulseSequence;
 t = 0:TR:endTime;
-ADC = zeros(length(t),nPoints);
+ADC = zeros(nPoints,length(t));
 for i = 1:length(t)
     Pulse = SincPulse(t(i),rfBandwidth,flipAngle/(gamma),gamma*B0,[],...
         sprintf('Excitation%d',1));
     PS.addPulse(Pulse)
-    ADC(i,:) = Pulse.endTime:1/readBandwidth:Pulse.endTime+(nPoints-1)/readBandwidth;
+    ADC(:,i) = Pulse.endTime:1/readBandwidth:Pulse.endTime+(nPoints-1)/readBandwidth;
 end
 world.setPulseSequence(PS)
 %% Calculate
@@ -100,15 +100,15 @@ MzPyr = M(3,:);
 MzLac = M(6,:);
 V.debug = false;
 end
-FID = zeros(length(t),nPoints);
+FID = zeros(nPoints,length(t));
 for i = 1:length(t)
-    [FID(i,:), freqAx] = world.evaluate(ADC(i,:),-gamma*B0);
+    [FID(:,i), freqAx] = world.evaluate(ADC(:,i).',-gamma*B0);
 end
 raw = FID;
-t = linspace(ADC(1,floor(end/2)),ADC(end,floor(end/2)),size(ADC,1));
+t = linspace(ADC(floor(end/2),1),ADC(floor(end/2),end),size(ADC,2));
 if (verbose)
     figure
-    surf(freqAx,t,abs(fftshift(fft(FID,[],2),2)));
+    surf(t,freqAx,abs(fftshift(fft(FID,[],1),1)));
     drawnow
     figure('Name',sprintf('Kab: %.4f Flip Angle %2f Repetition Time %.4f',...
     Kab,flipAngle,TR),'NumberTitle','off','Position',[660 50 1040 400])

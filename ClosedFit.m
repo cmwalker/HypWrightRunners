@@ -1,4 +1,4 @@
-function [ fits, fitErr, SNR ] = ClosedFit( base,fitParams,raw,t )
+function [ fits, fitErr, SNR ] = ClosedFit( base,fitParams,raw,t,freqAxis )
 import HypWright.*
 import HypWright.Models.*
 import HypWrightRunners.*
@@ -9,10 +9,10 @@ end
 if isempty(fitParams)
     error('No initial guesses were passed in for any fit parameters');
 end
-Default = struct('FWHMRange', 10,'endTime', 100, 'T1a', 56, 'T1b', 30,...
+Default = struct('FWHMRange', [],'endTime', 100, 'T1a', 56, 'T1b', 30,...
     'A', TwoSiteExchange(),'Kab', 0.1, 'flipAngle', 20, 'TR', 2,...
     'noiseLevel', 1e20, 'nAverages', 1,'lb',[],'ub',[],'verbose', false,...
-    'centers',[913,1137]);
+    'centers',[913,1137],'autoVIFNorm',true);
 tmpNames = fieldnames(Default);
 for i = 1:numel(tmpNames)
     if ~isfield(base,tmpNames{i})
@@ -20,6 +20,11 @@ for i = 1:numel(tmpNames)
     end
 end
 base.flipAngle = base.flipAngle*pi/180;
+if isempty(base.FWHMRange) || isempty(base.centers)
+    [I, ~, peakI] = FWHMRange(freqAxis, sum(abs(fftshift(fft(raw,[],1),1)),2));
+    base.FWHMRange = I;
+    base.centers = peakI;
+end
 FWHMRange = base.FWHMRange;
 A = base.A;
 Kab = base.Kab;
@@ -33,27 +38,31 @@ centers = base.centers;
 fits = zeros(nAverages,length(fieldnames(fitParams))+1);
 resnorm = zeros(nAverages,1);
 for j = 1:nAverages
-[ noiseyData, SNR ] = ApplyNoise( raw, noiseLevel );
-FTData = fftshift(fft(noiseyData,[],2),2);
-% tmpSpec = sum(abs(fftshift(fft(raw,[],2),2)));
-% [pks,centers] = findpeaks(tmpSpec);
-% [~,I] = sort(pks,'descend');
-% centers = centers(I(1:2));
-% centers = sort(centers);
+if(noiseLevel ~= 0)
+        [noiseyData, SNR] = ApplyNoise(raw, noiseLevel,freqAxis);
+        FTData = fftshift(fft(noiseyData,[],1),1);
+    else
+        FTData = fftshift(fft(raw,[],1),1);
+        SNR = inf;
+end
 peakMax = zeros(size(centers));
 phases = zeros(size(centers));
-signals = zeros(size(centers,2),size(raw,1));
+signals = zeros(size(raw,2),size(centers,2));
+PhaseData = zeros([size(FTData),length(centers)]);
 % Phase correct and FWHM integrate each peak
+%for m = 1:length(centers)
 for m = 1:length(centers)
-    [~,peakMax(m)] =  max(abs(FTData(:,centers(m)))); % fint the maximal peak location
-    phases(m) = angle(FTData(peakMax(m),centers(m))); % find the phase at the above point
+    if(centers(m) == 0)
+        continue
+    end
+    [~,peakMax(m)] =  max(abs(FTData(centers(m),:))); % fint the maximal peak location
+    phases(m) = angle(FTData(centers(m),peakMax(m))); % find the phase at the above point
     for n = 1:length(t)
         % FWHM integrate the Phased signal
-        signals(m,n) = abs(sum(real(exp(-1i*(phases(m)))*FTData(n,centers(m)-FWHMRange:centers(m)+FWHMRange))));
+        PhaseData(:,n,m) = real(exp(-1i*(phases(m)))*FTData(:,n));
     end
+    [signals(:,m)] = SignalIntegration(freqAxis, squeeze(PhaseData(:,:,m)), FWHMRange(m,:));
 end
-% tmpMax = max(max(signals));
-% signals = signals./tmpMax;
 %% Model Results
 tmpNames = fieldnames(fitParams);
 fitConstants = base;
@@ -62,7 +71,7 @@ for i = 1:numel(tmpNames)
         fitConstants = rmfield(fitConstants,tmpNames{i});
     end
 end
-[fits(j,:),~,resnorm(j),~] = A.fitData(fitConstants,fitParams,t,signals,lb,ub);
+[fits(j,:),~,resnorm(j),~] = A.fitData(fitConstants,fitParams,t,signals.',lb,ub);
 resParams = fitConstants;
 tmp = mean(fits);
 for i = 1:numel(tmpNames)
@@ -72,24 +81,15 @@ end
 fitErr = mean(resnorm);
 if(verbose)
     % Display Model accuracy
-    tmpFits = mean(fits(:,1));
-    figure('Name',sprintf('Fit Kab: %.4f Actual Kab: %.4f',tmpFits,Kab),'NumberTitle','off',...
+    figure('NumberTitle','off',...
         'Position',[660 50 1040 400])
-    [Y,T] = A.evaluate(resParams,linspace(0,t(end),1000),signals(:,1));
-    subplot(1,2,1)
-    plot(T,Y(1,:),'g',T,Y(2,:),'b',t,signals(1,:).','go',t,...
-        signals(2,:),'bo')
+    [Y,T] = A.evaluate(resParams,linspace(0,t(end),1000),signals(1,:));
+    Y = Y.';
+    plot(T,Y(:,1),'g',T,Y(:,2),'b',t,signals(:,1).','go',t,...
+        signals(:,2),'bo')
     legend('Modeled Pyruvate','Modeled Lactate','Simulated Pyruvate Data',...
         'Simulated Lactate Data');
     title('Fit Parameters')
-    actulParams = base;
-    [Y,T] = A.evaluate(actulParams,linspace(0,t(end),1000),signals(:,1).');
-    subplot(1,2,2)
-    plot(T,Y(1,:),'g',T,Y(2,:),'b',t,signals(1,:),'go',t,...
-        signals(2,:),'bo')
-    legend('Modeled Pyruvate','Modeled Lactate','Simulated Pyruvate Data',...
-        'Simulated Lactate Data');
-    title('Actual Parmeters')
 end
 end
 

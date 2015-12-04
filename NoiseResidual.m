@@ -19,22 +19,19 @@ ADC = Pulse.endTime:1/4096:Pulse.endTime+(2048-1)/4096;
 world.setPulseSequence(PS)
 %% Calculate
 world.calculate(10);
-[FID, ~] = world.evaluate(ADC,-67.262e6*B0);
+[FID, freqAxis] = world.evaluate(ADC,-67.262e6*B0);
 raw = FID;
-tmpFTData = fftshift(fft(raw,[],2),2);
-[~,centers] = findpeaks(abs(fftshift(fft(raw,[],2),2)));
-% Phase correct and FWHM integrate each peak
-[~,peakMax] =  max(abs(tmpFTData(:,centers))); % fint the maximal peak location
-phases = angle(tmpFTData(peakMax,centers)); % find the phase at the above point
-% FWHM integrate the Phased signal
+tmpFTData = fftshift(fft(raw,[],1),1);
+[I, ~, peakI] = FWHMRange(freqAxis, abs(tmpFTData));
+phases = angle(tmpFTData(peakI));
 signals = zeros(1,nSamples);
 noiseResidual = zeros(1,10);
 for j = 1:10
     for i = 1:nSamples
-        [ noiseyData, ~ ] = ApplyNoise( raw, noiseLevel );
-        tmpFTData = fftshift(fft(noiseyData,[],2),2);
-        signals(i) = HypWright.fwhm(centers-100:centers+100,...
-            abs(real(exp(1i*(phases))*tmpFTData(centers-100:centers+100))));
+        [noiseyData, ~] = ApplyNoise(raw, noiseLevel, freqAxis);
+        tmpFTData = fftshift(fft(noiseyData,[],1),1);
+        signals(i) = SignalIntegration(freqAxis,...
+            real(exp(-1i*(phases))*tmpFTData), I);
     end
     fun = @(x,t)zeros(size(t))+x;
     opts = optimset('Display','off');
