@@ -1,4 +1,4 @@
-function [ noiseyData, SNR ] = ApplyNoise( raw, noiseLevel,freqAxis )
+function [ noiseyData, SNR ] = ApplyNoise( raw, noiseLevel,freqAxis, varargin)
 %APPLYNOISE Applys some level of noise to a clean dataset
 %   [ noiseyData, SNR ] = ApplyNoise( raw, noiseLevel ) - applies noise scaled by
 %   some factor noiseLevel to some set of raw data. SNR is the theroretical SNR 
@@ -7,6 +7,6 @@ function [ noiseyData, SNR ] = ApplyNoise( raw, noiseLevel,freqAxis )
 import HypWrightRunners.*
 noise = (rand(size(raw))-0.5+1i*(rand(size(raw))-0.5))/noiseLevel;
 noiseyData = raw+noise;
-SNR = DynamicSNR(raw,noise,freqAxis);
+SNR = DynamicSNR(raw,noise,freqAxis, varargin{:});
 end
 

@@ -1,4 +1,4 @@
-function [ SNR,meanSNR ] = DynamicSNR(raw,noise,freqAxis)
+function [ SNR,meanSNR ] = DynamicSNR(raw,noise,freqAxis,varargin)
 %DYNAMICSNR gives the SNR and mean SNR of a dynamic hyperpolarized study
 %   [ SNR,meanSNR ] = DynamicSNR(raw,t,noiseLevel) - takes some raw noisless
 %   FIDs, the time vector associated with the FIDs, and some noise factor and
@@ -14,10 +14,15 @@ import HypWrightRunners.*
 % Find Peak Centers
 % generate noise
 FTData = fftshift(fft(raw,[],1),1); % Fourier transfor data
+if nargin <= 4
 if isvector(FTData)
     [I, ~, peakI] = FWHMRange(freqAxis, abs(FTData));
 else
     [I, ~, peakI] = FWHMRange(freqAxis, sum(abs(FTData),2));
+end
+else
+    I = varargin{1};
+    peakI = varargin{2};
 end
 peakMax = zeros(size(peakI));
 phases = zeros(size(peakI));

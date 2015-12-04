@@ -57,7 +57,8 @@ fits = zeros(nAverages,length(fieldnames(fitParams)));
 fitErr = zeros(nAverages,1);
 for j = 1:nAverages
     if(noiseLevel ~= 0)
-        [noiseyData, SNR] = ApplyNoise(raw, noiseLevel,freqAxis);
+        [noiseyData, SNR] = ApplyNoise(raw, noiseLevel,freqAxis,...
+            FWHMRange,centers);
         FTData = fftshift(fft(noiseyData,[],1),1);
     else
         FTData = fftshift(fft(raw,[],1),1);

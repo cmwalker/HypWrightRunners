@@ -11,8 +11,8 @@ if isempty(fitParams)
 end
 Default = struct('FWHMRange', [],'endTime', 100, 'T1a', 56, 'T1b', 30,...
     'A', TwoSiteExchange(),'Kab', 0.1, 'flipAngle', 20, 'TR', 2,...
-    'noiseLevel', 1e20, 'nAverages', 1,'lb',[],'ub',[],'verbose', false,...
-    'centers',[913,1137],'autoVIFNorm',true);
+    'noiseLevel', 0, 'nAverages', 1,'lb',[],'ub',[],'verbose', false,...
+    'centers',[]);
 tmpNames = fieldnames(Default);
 for i = 1:numel(tmpNames)
     if ~isfield(base,tmpNames{i})
@@ -39,7 +39,8 @@ fits = zeros(nAverages,length(fieldnames(fitParams))+1);
 resnorm = zeros(nAverages,1);
 for j = 1:nAverages
 if(noiseLevel ~= 0)
-        [noiseyData, SNR] = ApplyNoise(raw, noiseLevel,freqAxis);
+        [noiseyData, SNR] = ApplyNoise(raw, noiseLevel,freqAxis,...
+            FWHMRange,centers);
         FTData = fftshift(fft(noiseyData,[],1),1);
     else
         FTData = fftshift(fft(raw,[],1),1);

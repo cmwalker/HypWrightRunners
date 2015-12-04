@@ -36,12 +36,12 @@ end
 I = zeros(length(peaks),2);
 C = zeros(length(peaks),2);
 for i = 1:(length(peaks))
-    right = find(yAxis(breaks(i):breaks(i+1))>=halfHieghts(i),1,'first');
-    right = right+breaks(i)-1;
-    righti = interp1([yAxis(right-1),yAxis(right)],[right-1,right],halfHieghts(i));
-    left = find(yAxis(breaks(i):breaks(i+1))>=halfHieghts(i),1,'last');
+    left = find(yAxis(breaks(i):breaks(i+1))>=halfHieghts(i),1,'first');
     left = left+breaks(i)-1;
-    lefti = interp1([yAxis(left),yAxis(left+1)],[left,left+1],halfHieghts(i));
+    right = find(yAxis(breaks(i):breaks(i+1))>=halfHieghts(i),1,'last');
+    right = right+breaks(i)-1;
+    righti = interp1([yAxis(left-1),yAxis(left)],[left-1,left],halfHieghts(i));
+    lefti = interp1([yAxis(right),yAxis(right+1)],[right,right+1],halfHieghts(i));
     I(i,:) = [righti,lefti];
     C(i,:) = interp1(1:length(xAxis),xAxis,[righti,lefti]);
     if verbose
@@ -49,7 +49,7 @@ for i = 1:(length(peaks))
         plot(ax1,lefti,halfHieghts(i),'ko')
         plot(ax2,C(i,1),halfHieghts(i),'ro')
         plot(ax2,C(i,2),halfHieghts(i),'ko')
-    end;
+    end
 end
 if verbose
     legend(ax2,'Signal','Left FWHM Ranges','Right FWHM Ranges');
