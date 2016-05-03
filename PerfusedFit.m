@@ -36,7 +36,7 @@ if isempty(base.FWHMRange) || isempty(base.centers)
     base.FWHMRange = I;
     base.centers = peakI;
 end
-FWHMRange = base.FWHMRange;
+IFWHM = base.FWHMRange;
 A = base.A;
 bfit = @(t)padarray(gampdf(t,base.gammaPdfA,base.gammaPdfB),1,'post');
 base.b = bfit;
@@ -57,7 +57,7 @@ fitErr = zeros(nAverages,1);
 for j = 1:nAverages
     if(noiseLevel ~= 0)
         [noiseyData, SNR] = ApplyNoise(raw, noiseLevel,freqAxis,...
-            FWHMRange,centers);
+            IFWHM,centers);
         FTData = fftshift(fft(noiseyData,[],1),1);
     else
         FTData = fftshift(fft(raw,[],1),1);
@@ -79,7 +79,7 @@ for m = 1:length(centers)
         % FWHM integrate the Phased signal
         PhaseData(:,n,m) = real(exp(-1i*(phases(m)))*FTData(:,n));
     end
-    [signals(:,m)] = SignalIntegration(freqAxis, squeeze(PhaseData(:,:,m)), FWHMRange(m,:));
+    [signals(:,m)] = SignalIntegration(freqAxis, squeeze(PhaseData(:,:,m)), IFWHM(m,:));
 end
 nLac = sum(abs(signals(:,2)))/sum(sum(abs(signals)));
 flipAngles(1,:) = base.flipAngle*pi/180;%zeros(1,size(raw,2))+base.flipAngle*pi/180;
