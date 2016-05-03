@@ -14,9 +14,9 @@ Default = struct('gamma', 67.262e6, 'readBandwidth', 4096, 'rfBandwidth', 5000,.
     'T2b', 0.02, 'kve', 0.02, 'vb', 0.09, 've', .91, 'ppma', -7e-6,...
     'ppmb', 7e-6,'gammaPdfA',2.8,'gammaPdfB',4.5,'scaleFactor',1,...
     'Kab', 0.1, 'flipAngle', 20, 'TR', 2,'verbose', false,...
-    'FWHMRange', [], 'A', GammaBanksonModel(),'noiseLevel', 1e20,...
+    'FWHMRange', [], 'A', MultiPoolTofftsGammaVIF(),'noiseLevel', 0,...
     'nAverages', 1, 'lb',0,'ub',100,'centers',[],'fitOptions',...
-    optimset('lsqcurvefit'),'B0',3,'autoVIFNorm',true);
+    optimset('lsqcurvefit'),'B0',7,'autoVIFNorm',true);
 tmpNames = fieldnames(base);
 for i = 1:numel(tmpNames) 
     if ~isfield(Default,tmpNames{i})
@@ -30,7 +30,6 @@ for i = 1:numel(tmpNames)
         base.(tmpNames{i}) = Default.(tmpNames{i});
     end
 end
-base.flipAngle = base.flipAngle*pi/180;
 % calc FWHM range if needed
 if isempty(base.FWHMRange) || isempty(base.centers)
     [I, ~, peakI] = FWHMRange(freqAxis, sum(abs(fftshift(fft(raw,[],1),1)),2));
@@ -50,7 +49,7 @@ centers = base.centers;
 verbose = base.verbose;
 % Correct for VIF normilization if needed
 if base.autoVIFNorm
-    base.scaleFactor = 1.325707821912188e+03*sin(base.flipAngle)-0.258954792597810;
+    base.scaleFactor = 0.021614001850489*base.flipAngle+1.312872065860338e+03;
 end
 %% Fit data
 fits = zeros(nAverages,length(fieldnames(fitParams)));
@@ -82,6 +81,9 @@ for m = 1:length(centers)
     end
     [signals(:,m)] = SignalIntegration(freqAxis, squeeze(PhaseData(:,:,m)), FWHMRange(m,:));
 end
+nLac = sum(abs(signals(:,2)))/sum(sum(abs(signals)));
+flipAngles(1,:) = base.flipAngle*pi/180;%zeros(1,size(raw,2))+base.flipAngle*pi/180;
+flipAngles(2,:) = base.flipAngle*pi/180;%zeros(1,size(raw,2))+base.flipAngle*pi/180;
 %% Model Results
 tmpNames = fieldnames(fitParams);
 fitConstants = base;
@@ -90,24 +92,18 @@ for i = 1:numel(tmpNames)
         fitConstants = rmfield(fitConstants,tmpNames{i});
     end
 end
-[x,~,resnorm,~,exitflag] = A.fitData(fitConstants,fitParams,t,signals.','lb',lb,'ub',ub);
-resParams = fitConstants;
-for i = 1:numel(tmpNames)
-    resParams.(tmpNames{i}) = x(i);
-end
-fits(j,:) = x;
-fitErr(j) = resnorm;
+params = struct('ExchangeTerms',[0,base.Kab;0,0],'T1s',[base.T1a,base.T1b],...
+    'TRList',t,'FaList',flipAngles,'PerfusionTerms',[base.kve,0],...
+    'volumeFractions',[base.ve],'t0',[0;0],'gammaPdfA',[base.gammaPdfA;1],...
+                'gammaPdfB',[base.gammaPdfB;1],'scaleFactor',[base.scaleFactor;0],...
+    'fitOptions',base.fitOptions);
+[fits(j,:),resultParams,allParams,resnorm(j),residual,exitflag,output,lambda,jacobian]...
+    = A.fitData(params,fitParams,t,signals.',lb,ub);
 end
 if(verbose)
     % Display Model accuracy
-    figure('Position',[660 50 1040 400])
-    [Y,T] = A.evaluate(resParams,linspace(0,t(end),1000),[0,0]);
-    Y = Y.';
-    plot(T,Y(:,1),'g',T,Y(:,2),'b',t,signals(:,1),'go',t,...
-        signals(:,2),'bo')
-    legend('Modeled Pyruvate','Modeled Lactate','Simulated Pyruvate Data',...
-        'Simulated Lactate Data');
-    title('Fit Parameters')
+    A.DataCompare(A,allParams,signals(1,:).',t,signals.')
+    drawnow
 end
 end
 

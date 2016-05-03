@@ -44,10 +44,10 @@ V = Voxel([0;0;0],Spin);
 world.addVoxel(V);
 %% Build Pulse Sequence
 PS = PulseSequence;
-t = 0.01:TR:endTime;
+t = 0:TR:endTime;
 ADC = zeros(length(t),nPoints);
 for i = 1:length(t)
-    Pulse = SincPulse(t(i),rfBandwidth,flipAngle/(gamma),gamma*B0,[],...
+    Pulse = SincPulse(t(i)+0.001,rfBandwidth,flipAngle/(gamma),gamma*B0,[],...
         sprintf('Excitation%d',1));
     PS.addPulse(Pulse)
     ADC(i,:) = Pulse.endTime:1/readBandwidth:Pulse.endTime+(nPoints-1)/readBandwidth;
